@@ -1,0 +1,50 @@
+name: CI-CD to AKS
+
+on:
+  push:
+    branches:
+      - DEV
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+
+    # Checkout code
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    # Login to Azure
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    # Login to ACR
+    - name: ACR Login
+      run: az acr login --name ${{ secrets.ACR_NAME }}
+
+    # Build & Push Docker Image
+    - name: Build and Push Image
+      run: |
+        docker buildx create --use
+        docker buildx build \
+          --platform linux/arm64 \
+          -t ${{ secrets.ACR_NAME }}.azurecr.io/myapp:${{ github.sha }} \
+          --push ./app
+
+    # Set AKS context
+    - name: Get AKS Credentials
+      run: |
+        az aks get-credentials \
+          --resource-group ${{ secrets.AKS_RESOURCE_GROUP }} \
+          --name ${{ secrets.AKS_CLUSTER_NAME }} \
+          --overwrite-existing
+
+    #  Deploy to AKS
+    - name: Deploy to AKS
+      run: |
+        kubectl set image deployment/myapp \
+        myapp=${{ secrets.ACR_NAME }}.azurecr.io/myapp:${{ github.sha }} \
+        -n demo
