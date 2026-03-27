@@ -71,4 +71,4 @@ jobs:
       run: |
         kubectl set image deployment/aks-demo \
         aks-demo=${{ secrets.ACR_NAME }}.azurecr.io/myapp:${{ github.sha }} \
-        -n demo
+        -n aks-roll-out-demo
