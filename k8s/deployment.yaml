@@ -3,9 +3,9 @@ kind: Deployment
 metadata:
   name: aks-demo
 spec:
-  replicas: 2
+  replicas: 1   #Start with 1 pod
 
-  strategy:            
+  strategy:
     type: RollingUpdate
     rollingUpdate:
       maxUnavailable: 1
@@ -26,3 +26,8 @@ spec:
         imagePullPolicy: Always
         ports:
         - containerPort: 5000
+        resources:              # REQUIRED for HPA
+          requests:
+            cpu: "100m"
+          limits:
+            cpu: "200m"
