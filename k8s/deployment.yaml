@@ -2,8 +2,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: aks-demo
+  namespace: AKS-ROLL-OUT-DEMO
 spec:
-  replicas: 1   #Start with 1 pod
+  replicas: 1
 
   strategy:
     type: RollingUpdate
@@ -22,11 +23,12 @@ spec:
     spec:
       containers:
       - name: aks-demo
-        image: vkraftacr123.azurecr.io/aks-demo-app:v1
+        image: vkraftacr123.azurecr.io/myapp:latest   #GitHub will update tag
         imagePullPolicy: Always
         ports:
         - containerPort: 5000
-        resources:              # REQUIRED for HPA
+
+        resources:
           requests:
             cpu: "100m"
           limits:

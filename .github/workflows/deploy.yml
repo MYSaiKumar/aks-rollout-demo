@@ -1,31 +1,26 @@
 name: CI-CD to AKS
-
 on:
   push:
     branches:
       - DEV
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
-
-    # Checkout code
+    # 1Checkout
     - name: Checkout
       uses: actions/checkout@v4
-
-    # Login to Azure
+    # 2Azure Login
     - name: Azure Login
-      uses: azure/login@v1
+      uses: azure/login@v2
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    # Login to ACR
+    # 3ACR Login
     - name: ACR Login
       run: az acr login --name ${{ secrets.ACR_NAME }}
 
-    # Build & Push Docker Image
+    # 4Build & Push Image
     - name: Build and Push Image
       run: |
         docker buildx create --use
@@ -34,7 +29,7 @@ jobs:
           -t ${{ secrets.ACR_NAME }}.azurecr.io/myapp:${{ github.sha }} \
           --push ./app
 
-    # Set AKS context
+    # 5Get AKS Credentials (START HERE)
     - name: Get AKS Credentials
       run: |
         az aks get-credentials \
@@ -42,9 +37,38 @@ jobs:
           --name ${{ secrets.AKS_CLUSTER_NAME }} \
           --overwrite-existing
 
-    #  Deploy to AKS
+    # 6Install Metrics Server (if not exists)
+    - name: Install Metrics Server
+      run: |
+        if ! kubectl get deployment metrics-server -n kube-system > /dev/null 2>&1; then
+          echo "Installing Metrics Server..."
+          kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+        else
+          echo "Metrics Server already installed"
+        fi
+
+    # 7Install Ingress Controller (if not exists)
+    - name: Install Ingress Controller
+      run: |
+        if ! kubectl get deployment ingress-nginx-controller -n ingress-nginx > /dev/null 2>&1; then
+          echo "Installing Ingress Controller..."
+          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+        else
+          echo "Ingress already installed"
+        fi
+
+    # 8Deploy to AKS
     - name: Deploy to AKS
       run: |
-        kubectl set image deployment/myapp \
-        myapp=${{ secrets.ACR_NAME }}.azurecr.io/myapp:${{ github.sha }} \
+        kubectl apply -f k8s/namespace.yaml
+        kubectl apply -f k8s/deployment.yaml
+        kubectl apply -f k8s/service.yaml
+        kubectl apply -f k8s/hpa.yaml
+        kubectl apply -f k8s/ingress.yaml
+
+    # 9Update Image (dynamic tag)
+    - name: Update Image
+      run: |
+        kubectl set image deployment/aks-demo \
+        aks-demo=${{ secrets.ACR_NAME }}.azurecr.io/myapp:${{ github.sha }} \
         -n demo
