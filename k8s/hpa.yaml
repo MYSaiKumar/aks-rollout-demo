@@ -2,7 +2,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: aks-demo-hpa
-  namespace: AKS-ROLL-OUT-DEMO
+  namespace: aks-roll-out-demo
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
