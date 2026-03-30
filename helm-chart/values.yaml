@@ -1,0 +1,47 @@
+
+
+namespace:
+  name: aks-helm-demo
+
+deployment:
+  name: aks-demo
+
+  strategy:
+    type: RollingUpdate
+    maxUnavailable: 1
+    maxSurge: 1
+
+  container:
+    name: aks-demo
+    port: 5000
+
+  resources:
+    requests:
+      cpu: "100m"
+    limits:
+      cpu: "200m"
+
+image:
+  repository: vkraftacr123.azurecr.io/myapp
+  pullPolicy: Always
+  tag: "latest"
+
+service:
+  name: aks-demo-service
+  type: ClusterIP
+  port: 80
+  targetPort: 5000
+
+hpa:
+  enabled: true
+  name: aks-demo-hpa
+  minReplicas: 1
+  maxReplicas: 2
+  cpuUtilization: 50
+
+ingress:
+  enabled: true
+  name: aks-demo-ingress
+  className: nginx
+  host: myapp.vkraft.com
+  path: /
